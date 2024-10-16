@@ -1,54 +1,41 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Given data for Sample 6 measured counts (considered as true counts approximation for other samples)
-# Example measured counts for Sample 6 (counts/10s) from the document
-sample_6_counts = {
-    "Shelf 1": 45029,
-    "Shelf 2": 41086,
-    "Shelf 3": 31847,
-    "Shelf 4": 22452,
+# Example data for measured count rates (per second), representing each shelf for samples 1-6
+measured_count_rates = {
+    'Sample 1': [33891, 16946, 9431, 6002],  # Shelves 1 to 4
+    'Sample 2': [41940, 27330, 16700, 11202],
+    'Sample 3': [43895, 33848, 22331, 15344],
+    'Sample 4': [44630, 38470, 27343, 19414],
+    'Sample 5': [45029, 41086, 31847, 22452],
+    'Sample 6': [1938, 664, 341, 216]       # Calibration sample, assumed true
 }
 
-# Dead time of GM counter (assuming tau = 200 microseconds = 0.0002 s)
-tau = 0.0002
+# Assume a dead time value τ (in seconds) estimated from previous analysis
+dead_time = 1.5e-5  # 15 microseconds as an example
 
-# Conversion of counts to count rate (per second)
-sample_6_rate = {shelf: count / 10.0 for shelf, count in sample_6_counts.items()}
+# Calculate the true count rates for all samples using the dead time correction formula
+true_count_rates = {}
+for sample, counts in measured_count_rates.items():
+    true_counts = [cm / (1 - cm * dead_time) for cm in counts]
+    true_count_rates[sample] = true_counts
 
-# Data for other samples (counts/10s) from the document
-sample_counts = {
-    "Sample 1": {"Shelf 1": 33891, "Shelf 2": 16946, "Shelf 3": 9431, "Shelf 4": 6002},
-    "Sample 2": {"Shelf 1": 41940, "Shelf 2": 27330, "Shelf 3": 16700, "Shelf 4": 11202},
-    "Sample 3": {"Shelf 1": 43895, "Shelf 2": 33848, "Shelf 3": 22331, "Shelf 4": 15344},
-    "Sample 4": {"Shelf 1": 44630, "Shelf 2": 38470, "Shelf 3": 27343, "Shelf 4": 19414},
-    "Sample 5": {"Shelf 1": 45029, "Shelf 2": 41086, "Shelf 3": 31847, "Shelf 4": 22452},
-}
+# Prepare data for plotting
+measured_rates = []
+true_rates = []
+for sample in measured_count_rates:
+    if sample != 'Sample 6':  # Exclude Sample 6 as it's used as the calibration reference
+        measured_rates.extend(measured_count_rates[sample])
+        true_rates.extend(true_count_rates[sample])
 
-# Calculate true count rates using the dead time correction
-true_rates = {}
-measured_rates = []  # Collecting measured rates for plotting
-corrected_rates = []  # Collecting corrected rates for plotting
-
-for sample, counts_per_shelf in sample_counts.items():
-    true_rates[sample] = {}
-    for shelf, count in counts_per_shelf.items():
-        measured_rate = count / 10.0  # Convert to counts per second
-        corrected_rate = measured_rate / (1 - (measured_rate * tau))  # Dead time correction formula
-
-        # Storing results
-        true_rates[sample][shelf] = corrected_rate
-        measured_rates.append(measured_rate)
-        corrected_rates.append(corrected_rate)
-
-# Plotting measured vs. true count rates
+# Plot measured count rate vs. true count rate
 plt.figure(figsize=(10, 6))
-plt.scatter(measured_rates, corrected_rates, color='b', label='Measured vs. True Count Rates (Sample 6)')
+plt.scatter(measured_rates, true_rates, label='Samples 1-5', color='blue')
 plt.plot([0, max(measured_rates)], [0, max(measured_rates)], 'r--', label='Line of Equality')
-plt.xlabel('Measured Count Rate (counts/s)')
-plt.ylabel('True Count Rate (counts/s)')
-plt.title('Measured vs. True Count Rates (Sample 6)')
+plt.xlabel('Measured Count Rate (counts/sec)')
+plt.ylabel('True Count Rate (counts/sec)')
+plt.title('Measured Count Rate vs. True Count Rate')
 plt.legend()
-plt.grid(True)
+plt.grid()
+plt.savefig('measured_vs_true_count_rate.png')
 plt.show()
-plt.savefig('measured_vs_true_count_rates.png')
