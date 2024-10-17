@@ -2,44 +2,62 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import linregress
 
-# Data from the lab report - measured counts for different shelves (assuming average values where necessary)
-# The values need to be provided here to proceed with plotting and fitting
+import pandas as pd
 
-# Example data based on the shelf counts provided in the document for each sample (shelves 1 to 4)
-shelf_counts = {
-    'shelf1': [41940, 33891, 43995, 45029, 44630],  # Example counts for each sample
-    'shelf2': [27330, 16946, 41086, 38470],         # Example counts for each sample
-    'shelf3': [16700, 9431, 31847, 27343],          # Example counts for each sample
-    'shelf4': [11202, 6002, 22452, 19414]           # Example counts for each sample
+# Data from the images
+data = {
+    "Sample": ["Sample 1"] * 4 + ["Sample 2"] * 4 + ["Sample 3"] * 4 + ["Sample 4"] * 4 + ["Sample 5"] * 4 + ["Calibration"] * 4,
+    "Shelf": ["Shelf 1", "Shelf 2", "Shelf 3", "Shelf 4"] * 6,
+    "Time (s)": [10] * 24,
+    "Counts": [
+        33891, 16996, 9431, 6002,  # Sample 1
+        41940, 27330, 16780, 11202, # Sample 2
+        43895, 33848, 22331, 15344, # Sample 3
+        44630, 38470, 27393, 19414, # Sample 4
+        45029, 41086, 31047, 22452, # Sample 5
+        1938, 664, 341, 216          # Calibration
+    ]
 }
 
-# Relative activities for each sample compared to sample 1
-relative_activity = np.array([1, 2, 3, 4, 5])
+# Create DataFrame
+df = pd.DataFrame(data)
 
-# Placeholder for calculating ln(Cm/x) and fitting a line to get dead time
-shelf_lnCm_over_x = {}
+# Calculate measured count rate (Ċm)
+df['C_dot_m'] = df['Counts'] / df['Time (s)']
 
-# Loop over each shelf and calculate ln(Cm/x)
-for shelf, counts in shelf_counts.items():
-    lnCm_over_x = np.log(np.array(counts) / relative_activity[:len(counts)])
-    shelf_lnCm_over_x[shelf] = lnCm_over_x
+# Create a list to store results for each sample's linear fit
+fit_results = []
 
-    # Fit ln(Cm/x) as a function of x (relative activity)
-    slope, intercept, r_value, p_value, std_err = linregress(relative_activity[:len(counts)], lnCm_over_x)
+# Plot ln(Ċm / x) vs. x for each sample and perform linear regression
+plt.figure(figsize=(14, 10))
+samples = df['Sample'].unique()
 
-    # Calculate dead time (tau) from the slope using the paralyzable model
-    tau = -1 / slope
+for sample in samples:
+    sample_data = df[df['Sample'] == sample]
+    x = np.arange(1, 5)  # Shelf numbers 1 to 4
+    ln_C_dot_m_over_x = np.log(sample_data['C_dot_m'] / x)
 
-    # Plot the data and the fitted line
-    plt.figure()
-    plt.scatter(relative_activity[:len(counts)], lnCm_over_x, label=f'Data ({shelf})')
-    plt.plot(relative_activity[:len(counts)], slope * relative_activity[:len(counts)] + intercept,
-             label=f'Fit: slope={slope:.2f}, intercept={intercept:.2f}\nτ={tau:.2e}s', color='red')
-    plt.xlabel('Relative Activity (x)')
-    plt.ylabel('ln(Cm/x)')
-    plt.title(f'ln(Cm/x) vs. x for {shelf}')
-    plt.legend()
-    plt.grid()
-    plt.show()
+    # Linear regression
+    slope, intercept, r_value, p_value, std_err = linregress(x, ln_C_dot_m_over_x)
+    fit_results.append({"Sample": sample, "Slope": slope, "Intercept": intercept, "R-squared": r_value**2})
 
-    print(f"For {shelf}, the estimated dead time τ is {tau:.2e} seconds.")
+    # Plot the data and the fit
+    plt.plot(x, ln_C_dot_m_over_x, 'o', label=f'{sample} data')
+    plt.plot(x, slope * x + intercept, '-', label=f'{sample} fit: slope={slope:.4f}')
+
+# Plot formatting
+plt.title('ln(Ċm / x) vs. x for Each Sample')
+plt.xlabel('Shelf Number (x)')
+plt.ylabel('ln(Ċm / x)')
+plt.legend()
+plt.grid()
+plt.savefig('ln_Cm_over_x_vs_x.png')
+plt.show()
+
+# Display the fit results
+fit_results_df = pd.DataFrame(fit_results)
+fit_results_df['Dead Time (τ) [s]'] = -1 / fit_results_df['Slope']
+
+# Drop the intercept and slope columns as requested
+fit_results_df = fit_results_df.drop(columns=['Intercept', 'Slope'])
+print(fit_results_df)
