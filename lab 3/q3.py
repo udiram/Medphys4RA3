@@ -29,7 +29,7 @@ ax.set_ylabel('ln(C_m / x)')
 ax.set_title('ln(C_m / x) vs Relative Activity (Paralyzable Model)')
 ax.legend()
 ax.grid(True)
-
+plt.savefig('q3.png')
 plt.show()
 
 print(f"Dead Time values (τ) for paralyzable model:", fits_log)
