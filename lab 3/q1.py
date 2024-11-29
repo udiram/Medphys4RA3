@@ -1,4 +1,10 @@
+import numpy as np
 import matplotlib.pyplot as plt
+# Prepare data for plotting with uncertainties
+observed_rates = []
+true_rates = []
+observed_uncertainties = []
+true_uncertainties = []
 
 # Given data
 sample_counts = {
@@ -12,28 +18,31 @@ sample_counts = {
 # Constants
 tau = 200e-6  # Dead time in seconds
 
-# Prepare data for plotting
-observed_rates = []
-true_rates = []
-
 # Process each sample and shelf
 for sample, shelves in sample_counts.items():
     for shelf, count in shelves.items():
-        # Calculate measured rate
+        # Calculate measured rate and uncertainty
         measured_rate = count / 10.0  # counts per second
+        measured_uncertainty = np.sqrt(count) / 10.0  # uncertainty in counts per second
 
         # Apply dead time correction
         corrected_rate = measured_rate / (1 - (measured_rate * tau))
 
-        # Append rates to lists
+        # Propagate uncertainty for the true rate
+        corrected_uncertainty = measured_uncertainty / (1 - (measured_rate * tau)) ** 2
+
+        # Append rates and uncertainties to lists
         observed_rates.append(measured_rate)
         true_rates.append(corrected_rate)
+        observed_uncertainties.append(measured_uncertainty)
+        true_uncertainties.append(corrected_uncertainty)
 
 # Adjusting the scaling for better visibility
 plt.figure(figsize=(8, 6))
 
-# Create the scatter plot with flipped axes
-plt.scatter(true_rates, observed_rates, color='blue', label="Measured vs. True Count Rates")
+# Create the scatter plot with error bars
+plt.errorbar(true_rates, observed_rates, xerr=true_uncertainties, yerr=observed_uncertainties,
+             fmt='o', color='blue', label="Measured vs. True Count Rates", ecolor='gray', capsize=3)
 
 # Plot the ideal y=x line for comparison
 plt.plot([min(true_rates), max(true_rates)], [min(true_rates), max(true_rates)],
@@ -42,7 +51,7 @@ plt.plot([min(true_rates), max(true_rates)], [min(true_rates), max(true_rates)],
 # Set the axis labels and title
 plt.xlabel("True Count Rate (counts/s)")
 plt.ylabel("Measured Count Rate (counts/s)")
-plt.title("Measured vs. True Count Rates")
+plt.title("Measured vs. True Count Rates with Uncertainties")
 
 # Adjust the limits for better visual coherence
 plt.xlim(0, max(true_rates) * 1.1)
@@ -51,8 +60,7 @@ plt.ylim(0, max(observed_rates) * 1.1)
 # Add a legend and grid
 plt.legend()
 plt.grid(True)
-plt.savefig('q1.png')
 
+plt.savefig('q1.png')
 # Show the plot
 plt.show()
-# Save the plot as an image

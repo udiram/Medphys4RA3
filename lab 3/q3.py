@@ -11,11 +11,18 @@ relative_activity = pd.Series([1, 2, 3, 4, 5])
 # Calculate ln(C_m/x) for each shelf
 log_measured_rate = data.iloc[:, 1:].div(relative_activity.values, axis=0).apply(np.log)
 
+# Assume the error in each measured rate is 5% of the measured value
+error_percentage = 0.05
+error_measured_rate = data.iloc[:, 1:] * error_percentage
+
+# Calculate the error in ln(C_m/x) using propagation of error for log function: Δln(y) = Δy / y
+log_error = error_measured_rate.div(data.iloc[:, 1:])
+
 # Plot ln(C_m/x) as a function of x and perform linear fitting to estimate the dead time for paralyzable model
 fig, ax = plt.subplots(figsize=(8, 6))
 
 for i, col in enumerate(log_measured_rate.columns):
-    ax.plot(relative_activity, log_measured_rate[col], 'o-', label=f'Sample {i+1}')
+    ax.errorbar(relative_activity, log_measured_rate[col], yerr=log_error[col], fmt='o-', label=f'Sample {i+1}')
 
 # Fit a line to each sample
 fits_log = {}
@@ -29,7 +36,10 @@ ax.set_ylabel('ln(C_m / x)')
 ax.set_title('ln(C_m / x) vs Relative Activity (Paralyzable Model)')
 ax.legend()
 ax.grid(True)
-plt.savefig('q3.png')
+
+# Save and display the plot with error bars
+plt.savefig('q3_with_error_bars.png')
 plt.show()
 
+# Output the fit results
 print(f"Dead Time values (τ) for paralyzable model:", fits_log)
